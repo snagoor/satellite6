@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "Preparing the tempoary backup directory"
+echo "Preparing the temporary backup directory"
 umask 0027
 export BACKUP_DIR=/tmp/backup-`date +%Y-%m-%d`
 mkdir $BACKUP_DIR
@@ -9,7 +9,7 @@ chmod 770 $BACKUP_DIR
 echo "Done"
 echo " "
 
-echo "Backing up the Red Hat Satellite 6 Database"
+echo "Backing up the Red Hat Satellite 6 Databases"
 echo " "
 runuser - postgres -c "pg_dump -Fc foreman > $BACKUP_DIR/foreman.dump"
 runuser - postgres -c "pg_dump -Fc candlepin > $BACKUP_DIR/candlepin.dump"
