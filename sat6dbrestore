@@ -1,0 +1,59 @@
+#!/bin/bash
+
+echo "Provide the location of the Red Hat Satellite DB tarball" 
+read LOC
+echo `file $LOC` | grep gzip >/dev/null 2>&1
+result=`echo $?`
+if [ $result -ne 0 ]; then
+  echo "File not found or the tarball is not in intended format"
+else
+   
+   echo "Extracting the tarball"
+   mkdir /tmp/backup-`date +%Y-%m-%d`
+   tar -xvzf $LOC -C /tmp/backup-`date +%Y-%m-%d` >/dev/null 2>&1
+#   cp -p candlepin.dump /tmp/
+#   cp -p foreman.dump /tmp
+   
+   # Drop the existing Red Hat Satellite PostgreSQL databases if any exist.
+   echo "This will drop the existing Foreman and Candlepin databases"
+   echo "Do you want to continue [Y/N]"
+   read ans
+ 
+   if [ $ans == 'Y' ] || [ $ans == 'y' ]; then
+
+       service tomcat stop
+       service postgresql start
+
+       echo "Dropping foreman and candlepin databases" 
+       runuser - postgres -c "dropdb foreman"
+       runuser - postgres -c "dropdb candlepin"
+       echo " "
+
+       # Restore Red Hat Satellite PostgreSQL databases from the dump
+       echo " "
+       echo "Restoring databases foreman and candlepin from the dump" 
+       runuser - postgres -c "pg_restore -C -d postgres /tmp/backup-`date +%Y-%m-%d`/foreman.dump" >/dev/null 2>&1
+       runuser - postgres -c "pg_restore -C -d postgres /tmp/backup-`date +%Y-%m-%d`/candlepin.dump" >/dev/null 2>&1
+
+       # Ensure MongoDB is running and delete the old data.
+       echo "Start the MongoDB database and clear old data"
+       service mongod start
+       echo 'db.dropDatabase();' | mongo pulp_database
+
+       mongorestore --host localhost /tmp/backup-`date +%Y-%m-%d`/mongo_dump/pulp_database/ >/dev/null 2>&1
+
+       # Restart all Red Hat Satellite processes.
+       echo "Restarting all services"
+       service postgresql start
+       service tomcat start
+       katello-service start
+
+       echo "Clearing the unwanted data" 
+       rm -rf /tmp/filelist
+       rm -rf /tmp/backup-`date +%Y-%m-%d`
+     
+   else
+       echo "Exiting"
+       exit
+   fi
+fi
