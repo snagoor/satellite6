@@ -1,6 +1,6 @@
 #!/bin/bash
 
-read "Provide the location of the Red Hat Satellite DB tarball : " LOC
+read -p "Provide the location of the Red Hat Satellite DB tarball : " LOC
 
 echo `file $LOC` | grep gzip >/dev/null 2>&1
 result=`echo $?`
@@ -14,7 +14,7 @@ else
   tar -xvzf $LOC -C /tmp/backup-`date +%Y-%m-%d` >/dev/null 2>&1
   # Drop the existing Red Hat Satellite PostgreSQL databases if any exist.
   echo -e "This will drop the existing Foreman and Candlepin databases\n"
-  read "Do you want to continue [Y/N] : " ans
+  read -p "Do you want to continue [Y/N] : " ans
  
   if [ $ans == 'Y' ] || [ $ans == 'y' ]; then
      service tomcat stop >/dev/null 2>&1
