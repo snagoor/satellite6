@@ -17,6 +17,8 @@ else
   read -p "Do you want to continue [Y/N] : " ans
  
   if [ $ans == 'Y' ] || [ $ans == 'y' ]; then
+     katello-service stop >/dev/null 2>&1
+     service postgresql stop >/dev/null 2>&1
      service tomcat stop >/dev/null 2>&1
      service postgresql start >/dev/null 2>&1
      echo -e "\nDropping foreman and candlepin databases" 
