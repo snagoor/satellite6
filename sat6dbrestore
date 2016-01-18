@@ -43,11 +43,11 @@ else
      service tomcat start >/dev/null 2>&1
      katello-service start >/dev/null 2>&1
 
-     echo -e "\nClearing unwanted data" 
+     echo -e "\nClearing unwanted data\n" 
      rm -rf /tmp/filelist
      rm -rf /tmp/backup-`date +%Y-%m-%d`
   else
-     echo -e "\nExiting without any changes"
+     echo -e "\nExiting without any changes\n"
      exit 1
   fi
 fi
