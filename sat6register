@@ -1,0 +1,227 @@
+#! /bin/bash
+
+echo -e "\nPlease select an option from the below\n"
+#echo "**************************************************************************************************"
+echo -e "\t1. Register this client to Red Hat Satellite 6 Server"
+echo -e "\t2. Unregister this client from Red Hat Satellite 6 Server"
+echo -e "\t3. Install and configure katello-agent"
+echo -e "\t4. Install and configure puppet agent"
+echo -e "\t5. Update system with latest security errata"
+echo -e "\t6. Report latest errata information of this client to Red Hat Satellite 6 Server"
+echo -e "\t7. Quit\n"
+#echo -e "**************************************************************************************************\n"
+
+read -p "Answer : " ANS 
+
+### Initial variable declarations ###
+SAT6URL=satellite.example.com
+AK=master-key
+ENV=Library
+ORG=RedHat
+REG_STATUS=0
+REPO_STATUS=0
+KA_STATUS=0
+
+### Function to check if the correct repos (i.e. Satellite 6.1 Tools) are enabled for installing packages ###
+check_repo_enabled_status()
+{
+	REPOSTATUS=$(subscription-manager repos --list | grep -A4 satellite-tools-6.1 | grep Enabled | awk {' print $2 '})
+
+	## Checking to see if the status is either 1 or 0 ##
+	if [ $REPOSTATUS -eq 0 ] || [ $REPOSTATUS -eq 1 ]; then
+           REPO_STATUS=$REPOSTATUS
+        else 
+           echo "Red Hat Satellite 6.1 Tools repository not found"
+	   echo "If Satellite 6.1 Tools repository is already synchronized, make sure its available in the $ENV lifecycle environment"
+           exit 1
+	fi
+}
+
+### Function to check registration status ###
+check_registration_status()
+{
+	REGSTATUS=$(subscription-manager list | grep -A4 "69" | grep Status: | awk {' print $2 '})
+	
+	## check to see if the system is registered or not ##
+	if [ $REGSTATUS == "Subscribed" ]; then
+            ## Also checking the package count for RHEL Server RPMs repository ##
+            PKGCOUNT=$(yum repolist 2>&1 | grep server-rpms | awk -F " " '{ print $NF }' | tr -d ,)
+            ## Checking to see if the package count is more than the 4000 ##
+	    if [ $PKGCOUNT -gt 4000 ]; then
+	       REG_STATUS=1
+            else
+	       echo "System is properly registered and subscribed, but base repository doesn't have the intended packages count"
+	       echo "Check if the content is properly synchronized and retry again"
+               exit 1
+            fi
+        else
+	    REG_STATUS=0
+	fi
+}
+
+### Function to check if katello-agent is installed ###
+check_katello_agent_status()
+{
+	KA_STATUS=$(rpm -qa | grep katello-agent | wc -l) 
+}
+
+### Registration Function ###
+register() 
+{
+	echo -e "\nRegistering this system to $SAT6URL, please wait... \n"
+	check_registration_status
+        if [ $REG_STATUS -eq 0 ]; then
+	   rpm -Uvh http://$SAT6URL/pub/katello-ca-consumer-latest.noarch.rpm >/dev/null 2>&1
+	   subscription-manager register --org=$ORG --activationkey=$AK >/dev/null 2>&1
+	   echo "System registered Successfully"
+        else
+	   read -p "System already registered, would you like to re-register it again? [Y/N] : " REREG
+           if [ $REREG == 'Y' ] || [ $REREG == 'y' ]; then
+              unregister
+              register
+	   else
+              echo -e "\nExiting without any changes\n"
+              exit 1
+	   fi
+        fi
+}
+
+### Un-register Function ###
+unregister() 
+{
+        check_registration_status
+        if [ $REG_STATUS -eq 1 ]; then
+	   subscription-manager unregister >/dev/null 2>&1
+	   subscription-manager remove --all >/dev/null 2>&1
+	   subscription-manager clean >/dev/null 2>&1
+ 	   yum remove -y `rpm -qa | grep katello-ca` >/dev/null 2>&1
+	   rm -f /etc/rhsm/rhsm.conf
+     ###################      mv /etc/rhsm/kat-backup.
+           REG_STATUS=0
+           echo -e "\nUnregister Successful\n"
+        else
+           echo -e "\nSystem is not registered, exiting without any changes\n"
+        fi
+
+}
+
+### Function to install and configure Katello Agent ###
+install_katello-agent() 
+{
+	check_registration_status
+        check_repo_enabled_status
+        if [ $REG_STATUS -eq 1 ] && [ $REPO_STATUS -eq 0 ]; then
+           echo -e "\nRed Hat Satellite 6.1 tools repository is disabled, enabling it now.."
+           subscription-manager repos --enable=rhel-*-satellite-tools-*-rpms
+           REPO_STATUS=1
+        fi
+        if [ $REG_STATUS -eq 1 ] && [ $REPO_STATUS -eq 1 ]; then
+	   echo -e "\nPlease wait, installing and configuring Katello Agent and Puppet Agent on this system"
+	   yum install -y katello-agent puppet > /dev/null 2>&1
+           echo -e "\nDone\n"
+        fi
+}
+
+### Function to install and configure Puppet Agent ###
+install_puppet-agent() 
+{
+	check_registration_status
+        check_repo_enabled_status
+        if [ $REG_STATUS -eq 1 ] && [ $REPO_STATUS -eq 0 ]; then
+           echo -e "\nRed Hat Satellite 6.1 tools repository is disabled, enabling it now.."
+           subscription-manager repos --enable=rhel-*-satellite-tools-*-rpms
+           REPO_STATUS=1
+        fi
+        if [ $REG_STATUS -eq 1 ] && [ $REPO_STATUS -eq 1 ]; then
+           echo """[main]
+           vardir = /var/lib/puppet
+           logdir = /var/log/puppet
+           rundir = /var/run/puppet
+           ssldir = \$vardir/ssl
+
+           [agent]
+ 	   waitforcert = 300
+           pluginsync = false
+           report = true
+           ignoreschedules = true
+           daemon = false
+           ca_server = $SAT6URL
+           server = $SAT6URL""" > /etc/puppet/puppet.conf 
+           
+           puppet agent -t > /dev/null 2>&1 
+           echo -e "\nDone"
+           echo -e "\nSign the puppet certificate for this host on Puppet Master "\"$SAT6URL"\" using below command"
+           echo "puppet cert sign `hostname -A`"
+        fi
+}
+
+### Function to update system with latest security errata's ###
+install_security_updates() 
+{
+          echo -e "\nApplying security updates for this system, please wait..."
+          yum update --security -y
+}
+
+## Report Latest Errata Information through katello-agent i.e. goferd service ###
+report_latest_errata() 
+{
+	  if [ $KA_STATUS -eq 1 ]; then
+             echo -e "\nReporting latest errata information to "\"$SAT6URL"\"\n"
+             service goferd restart > /dev/null 2>&1
+             katello-package-upload
+          else 
+             read -p "katello-agent is not installed on this system, would you like to install it now? [Y/N] : " KA_ANS
+             if [ $KA_ANS == 'Y' ] || [ $KA_ANS == 'y' ]; then
+                install_katello-agent
+                report_latest_errata
+             fi
+          fi
+}
+
+### Quit Function ###
+quit() 
+{
+          echo -e "\nQuit option selected\n"
+	  exit 0
+}
+
+### Usage Function ###
+usage() 
+{
+          echo -e "\nWrong option selected, Please select options [1-6]\n"
+          exit 1
+}
+
+case $ANS in
+	1)
+	   register
+	   ;;
+
+	2)
+	   unregister
+	   ;;
+   
+	3) 
+	   install_katello-agent
+	   ;;
+
+	4) 
+	   install_puppet-agent
+	   ;;
+	
+        5)
+	   install_security_updates
+	   ;;
+
+	6) 
+	   report_latest_errata
+           ;;
+
+	7)
+	   quit
+	   ;;
+
+	*)
+	   usage
+	   ;;
+esac
