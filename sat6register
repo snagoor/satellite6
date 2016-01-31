@@ -17,7 +17,7 @@ read -p "Answer : " ANS
 SAT6URL=satellite.example.com
 AK=master-key
 ENV=Library
-ORG=RedHat
+ORG=ExampleCorp
 REG_STATUS=0
 REPO_STATUS=0
 KA_STATUS=0
