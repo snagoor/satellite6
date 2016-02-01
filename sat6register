@@ -21,6 +21,7 @@ ORG=ExampleCorp
 REG_STATUS=0
 REPO_STATUS=0
 KA_STATUS=0
+PA_STATUS=0
 
 ### Function to check if the correct repos (i.e. Satellite 6.1 Tools) are enabled for installing packages ###
 check_repo_enabled_status()
@@ -63,6 +64,12 @@ check_registration_status()
 check_katello_agent_status()
 {
 	KA_STATUS=$(rpm -qa | grep katello-agent | wc -l) 
+}
+
+### Function to check if puppet-agent is installed ###
+check_puppet_agent_status()
+{
+	PA_STATUS=$(rpm -qa | grep puppet | wc -l) 
 }
 
 ### Registration Function ###
@@ -110,15 +117,16 @@ install_katello-agent()
 {
 	check_registration_status
         check_repo_enabled_status
+        check_katello_agent_status
         if [ $REG_STATUS -eq 1 ] && [ $REPO_STATUS -eq 0 ]; then
            echo -e "\nRed Hat Satellite 6.1 tools repository is disabled, enabling it now.."
            subscription-manager repos --enable=rhel-*-satellite-tools-*-rpms
            REPO_STATUS=1
-        fi
-        if [ $REG_STATUS -eq 1 ] && [ $REPO_STATUS -eq 1 ]; then
+        elif [ $REG_STATUS -eq 1 ] && [ $REPO_STATUS -eq 1 ] && [ $KA_STATUS -ne 0 ]; then
 	   echo -e "\nPlease wait, installing and configuring Katello Agent and Puppet Agent on this system"
 	   yum install -y katello-agent puppet > /dev/null 2>&1
            echo -e "\nDone\n"
+           KA_STATUS=0
         fi
 }
 
@@ -127,12 +135,12 @@ install_puppet-agent()
 {
 	check_registration_status
         check_repo_enabled_status
+	check_puppet_agent_status
         if [ $REG_STATUS -eq 1 ] && [ $REPO_STATUS -eq 0 ]; then
            echo -e "\nRed Hat Satellite 6.1 tools repository is disabled, enabling it now.."
            subscription-manager repos --enable=rhel-*-satellite-tools-*-rpms
            REPO_STATUS=1
-        fi
-        if [ $REG_STATUS -eq 1 ] && [ $REPO_STATUS -eq 1 ]; then
+        elif [ $REG_STATUS -eq 1 ] && [ $REPO_STATUS -eq 1 ] && [ $PA_STATUS -ne 0 ]; then
            echo """[main]
            vardir = /var/lib/puppet
            logdir = /var/log/puppet
@@ -152,6 +160,7 @@ install_puppet-agent()
            echo -e "\nDone"
            echo -e "\nSign the puppet certificate for this host on Puppet Master "\"$SAT6URL"\" using below command"
            echo "puppet cert sign `hostname -A`"
+	   PA_STATUS=0
         fi
 }
 
