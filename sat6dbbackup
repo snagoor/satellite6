@@ -9,7 +9,7 @@ chmod 770 $BACKUP_DIR
 echo -e "Done\n"
 
 echo -e "\nBackup up the Red Hat Satellite 6 configs"
-tar -cvf $BACKUP_DIR/config_files.tar.gz /etc/candlepin /etc/elasticsearch /etc/foreman /etc/foreman-proxy /etc/gutterball /etc/hammer /etc/httpd /etc/katello /etc/katello-installer /etc/pki/katello /etc/pki/katello-certs-tools /etc/pki/pulp /etc/pulp /etc/puppet /etc/qpid /etc/qpid-dispatch /etc/sysconfig/elasticsearch /etc/sysconfig/tomcat /etc/tomcat /root/ssl-build /var/lib/foreman /var/lib/candlepin /var/www/html/pub /var/lib/puppet/foreman_cache_data /var/lib/puppet/ssl
+tar -cvf $BACKUP_DIR/config_files.tar.gz /etc/candlepin /etc/elasticsearch /etc/foreman /etc/foreman-proxy /etc/gutterball /etc/hammer /etc/httpd /etc/katello /etc/katello-installer /etc/pki/katello /etc/pki/katello-certs-tools /etc/pki/pulp /etc/pulp /etc/puppet /etc/qpid /etc/qpid-dispatch /etc/sysconfig/elasticsearch /etc/sysconfig/tomcat /etc/tomcat /root/ssl-build /var/lib/foreman /var/lib/candlepin /var/www/html/pub /var/lib/puppet/foreman_cache_data /var/lib/puppet/ssl >/dev/null 2>&1
 
 echo -e "\nConfig backup complete"
 
