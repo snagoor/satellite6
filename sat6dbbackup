@@ -6,7 +6,7 @@ export BACKUP_DIR=/tmp/backup-`date +%Y-%m-%d`
 mkdir $BACKUP_DIR
 chgrp postgres $BACKUP_DIR
 chmod 770 $BACKUP_DIR
-echo -e "Done\n"
+echo "Done"
 
 echo -e "\nBacking up the Red Hat Satellite 6 config files"
 tar -cvf $BACKUP_DIR/config_files.tar.gz /etc/candlepin /etc/elasticsearch /etc/foreman /etc/foreman-proxy /etc/gutterball /etc/hammer /etc/httpd /etc/katello /etc/katello-installer /etc/pki/katello /etc/pki/katello-certs-tools /etc/pki/pulp /etc/pulp /etc/puppet /etc/qpid /etc/qpid-dispatch /etc/sysconfig/elasticsearch /etc/sysconfig/tomcat /etc/tomcat /root/ssl-build /var/lib/foreman /var/lib/candlepin /var/www/html/pub /var/lib/puppet/foreman_cache_data /var/lib/puppet/ssl >/dev/null 2>&1
@@ -23,7 +23,7 @@ echo -e "\nCompressing the Database Backup"
 cd $BACKUP_DIR
 tar -cvzf /root/backup.tar.gz * >/dev/null 2>&1
 cd ~
-echo "Done"
+echo -e "\nDone"
 echo -e "\nDB is located at /root/backup.tar.gz. Please provide this file to Red Hat Technical Support"
 
 echo -e "\nCleaning up the directories"
