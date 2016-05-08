@@ -8,12 +8,12 @@ chgrp postgres $BACKUP_DIR
 chmod 770 $BACKUP_DIR
 echo -e "Done\n"
 
-echo -e "\nBackup up the Red Hat Satellite 6 configs"
+echo -e "\nBacking up the Red Hat Satellite 6 config files"
 tar -cvf $BACKUP_DIR/config_files.tar.gz /etc/candlepin /etc/elasticsearch /etc/foreman /etc/foreman-proxy /etc/gutterball /etc/hammer /etc/httpd /etc/katello /etc/katello-installer /etc/pki/katello /etc/pki/katello-certs-tools /etc/pki/pulp /etc/pulp /etc/puppet /etc/qpid /etc/qpid-dispatch /etc/sysconfig/elasticsearch /etc/sysconfig/tomcat /etc/tomcat /root/ssl-build /var/lib/foreman /var/lib/candlepin /var/www/html/pub /var/lib/puppet/foreman_cache_data /var/lib/puppet/ssl >/dev/null 2>&1
 
 echo -e "\nConfig backup complete"
 
-echo -e "\nBacking up the Red Hat Satellite 6 Databases"
+echo -e "\nBacking up the Red Hat Satellite 6 databases i.e. PostgreSQL and MongoDB"
 runuser - postgres -c "pg_dump -Fc foreman > $BACKUP_DIR/foreman.dump"
 runuser - postgres -c "pg_dump -Fc candlepin > $BACKUP_DIR/candlepin.dump"
 mongodump --host localhost --out $BACKUP_DIR/mongo_dump >/dev/null 2>&1 
@@ -29,4 +29,4 @@ echo -e "\nDB is located at /root/backup.tar.gz. Please provide this file to Red
 echo -e "\nCleaning up the directories"
 rm -rf $BACKUP_DIR
 unset BACKUP_DIR
-echo -e "\nDone"
+echo -e "\nDone\n"
