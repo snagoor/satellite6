@@ -1,51 +1,81 @@
 #!/bin/bash
 
-read -p "Provide the location of the Red Hat Satellite DB tarball : " LOC
+function root_check() 
+{
+if [ "$(id -u)" != "0" ]; then
+   echo -e "\nThis script must be run as root\n" 1>&2
+   exit 1
+fi
+}
 
-echo `file $LOC` | grep gzip >/dev/null 2>&1
-result=`echo $?`
+function exit_status_check()
+{
+status="$?"
+if [ "$status" != 0 ]; then
+   echo -e "\nFailure reported in $1, check '"$2"' command for more information\n"
+   exit $status
+fi
+}
 
-if [ $result -ne 0 ]; then
-  echo "File not found or the tarball is not in intended format"
+root_check
+export BACKUP_DIR="/var/tmp/backup-$date +%Y-%m-%d)"
+read -p "Provide the location of the Red Hat Satellite DB tarball : " LOCATION
+
+result=$(file $LOCATION | grep gzip)
+status=$?
+
+if [ $status -ne 0 ]; then
+  echo -e "\nFile not found or the tarball is not in intended format\n"
   exit 1
 else
   echo -e "\nExtracting the tarball\n"
-  mkdir /tmp/backup-`date +%Y-%m-%d`
-  tar -xvzf $LOC -C /tmp/backup-`date +%Y-%m-%d` >/dev/null 2>&1
+  mkdir -p $BACKUP_DIR 
+  tar -xvzf $LOCATION -C $BACKUP_DIR >/dev/null 2>&1
   # Drop the existing Red Hat Satellite PostgreSQL databases if any exist.
   echo -e "This will drop the existing Foreman and Candlepin databases\n"
   read -p "Do you want to continue [Y/N] : " ans
  
   if [ $ans == 'Y' ] || [ $ans == 'y' ]; then
      katello-service stop >/dev/null 2>&1
+     exit_status_check "katello-service stop" "katello-service status"
      service postgresql stop >/dev/null 2>&1
+     exit_status_check "service postgresql stop" "service postgresql status"
      service tomcat stop >/dev/null 2>&1
+     exit_status_check "service tomcat stop" "service tomcat status"
      service postgresql start >/dev/null 2>&1
+     exit_status_check "service postgresql start" "service postgresql status"
      echo -e "\nDropping foreman and candlepin databases" 
      runuser - postgres -c "dropdb foreman"
+     exit_status_check "dropping Foreman DB" "runuser - postgres -c "dropdb foreman""
      runuser - postgres -c "dropdb candlepin"
+     exit_status_check "dropping Candlepin DB" "runuser - postgres -c "dropdb candlepin""
 
      # Restore Red Hat Satellite PostgreSQL databases from the dump
      echo -e "\n\nRestoring databases foreman and candlepin from the dump" 
-     runuser - postgres -c "pg_restore -C -d postgres /tmp/backup-`date +%Y-%m-%d`/foreman.dump" >/dev/null 2>&1
-     runuser - postgres -c "pg_restore -C -d postgres /tmp/backup-`date +%Y-%m-%d`/candlepin.dump" >/dev/null 2>&1
+     runuser - postgres -c "pg_restore -C -d postgres $BACKUP_DIR/foreman.dump" >/dev/null 2>&1
+     exit_status_check "restoring Foreman DB" "runuser - postgres -c "pg_restore -C -d postgres $BACKUP_DIR/foreman.dump""
+     runuser - postgres -c "pg_restore -C -d postgres $BACKUP_DIR/candlepin.dump" >/dev/null 2>&1
+     exit_status_check "restoring Candlepin DB" "runuser - postgres -c "pg_restore -C -d postgres $BACKUP_DIR/candlepin.dump""
 
-     # Ensure MongoDB is running and delete the old data.
-     echo -e "\nStart the MongoDB database and clear old data"
+     # Ensure MongoDB is running and then delete the old data.
+     echo -e "\nStarting mongod service and dropping current Mongo DB"
      service mongod start >/dev/null 2>&1
+     exit_status_check "service mongod start" "service mongod status"
      echo 'db.dropDatabase();' | mongo pulp_database >/dev/null 2>&1
+     exit_status_check "dropping Mongo DB" "echo 'db.dropDatabase();' | mongo pulp_database"
 
-     mongorestore --host localhost /tmp/backup-`date +%Y-%m-%d`/mongo_dump/pulp_database/ >/dev/null 2>&1
+     mongorestore --host localhost $BACKUP_DIR/mongo_dump/pulp_database/ >/dev/null 2>&1
+     exit_status_check "restoring Mongo DB" "mongorestore --host localhost $BACKUP_DIR/mongo_dump/pulp_database/"
 
      # Restart all Red Hat Satellite processes.
-     echo -e "\nRestarting all services"
-     service postgresql start >/dev/null 2>&1
-     service tomcat start >/dev/null 2>&1
+     echo -e "\nStarting all Katello services"
      katello-service start >/dev/null 2>&1
 
      echo -e "\nClearing unwanted data\n" 
-     rm -rf /tmp/filelist
-     rm -rf /tmp/backup-`date +%Y-%m-%d`
+     rm -rf $BACKUP_DIR
+     unset BACKUP_DIR
+     unset LOCATION
+     unset ans
   else
      echo -e "\nExiting without any changes\n"
      exit 1
