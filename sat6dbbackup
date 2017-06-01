@@ -1,6 +1,7 @@
 #!/bin/bash
 
-function root_check() {
+function root_check() 
+{
 if [ "$(id -u)" != "0" ]; then
    echo -e "\nThis script must be run as root\n" 1>&2
    exit 1
@@ -9,12 +10,13 @@ fi
 
 function exit_status_check()
 {
-status=$?
-if [ $status !=0 ]; then
-   echo -e "\nFailure in backing up $1, check '"katello-service status"' command for more information"
+status="$?"
+if [ "$status" != 0 ]; then
+   echo -e "\nFailure in backing up $1, check 'katello-service status' command for more information\n"
    exit $status
 fi
 }
+
 root_check
 echo -e "\nPreparing temporary backup directory"
 umask 0027
@@ -24,15 +26,15 @@ chgrp postgres $BACKUP_DIR
 chmod 770 $BACKUP_DIR
 echo -e "\nDone"
 
-echo -e "\nBacking up Red Hat Satellite 6 config files"
-tar -cvf $BACKUP_DIR/config_files.tar.gz /etc/candlepin /etc/elasticsearch /etc/foreman /etc/foreman-proxy /etc/gutterball /etc/hammer /etc/httpd /etc/katello /etc/katello-installer /etc/pki/katello /etc/pki/katello-certs-tools /etc/pki/pulp /etc/pulp /etc/puppet /etc/qpid /etc/qpid-dispatch /etc/sysconfig/elasticsearch /etc/sysconfig/tomcat /etc/tomcat /root/ssl-build /var/lib/foreman /var/lib/candlepin /var/www/html/pub /var/lib/puppet/foreman_cache_data /var/lib/puppet/ssl >/dev/null 2>&1
+echo -e "\nBacking up Red Hat Satellite 6 Configuration files"
+tar -cvf $BACKUP_DIR/config_files.tar.gz /etc/candlepin /etc/elasticsearch /etc/foreman /etc/foreman-proxy /etc/gutterball /etc/hammer /root/.hammer /etc/httpd /etc/katello /etc/katello-installer /etc/pki/katello /etc/pki/katello-certs-tools /etc/pki/pulp /etc/pulp /etc/puppet /etc/qpid /etc/qpid-dispatch /etc/sysconfig/elasticsearch /etc/sysconfig/tomcat /etc/tomcat /root/ssl-build /var/lib/foreman /var/lib/candlepin /var/www/html/pub /var/lib/puppet/foreman_cache_data /var/lib/puppet/ssl >/dev/null 2>&1
 echo -e "\nDone"
 
 echo -e "\nBacking up Red Hat Satellite 6 databases i.e. PostgreSQL and MongoDB"
-runuser - postgres -c "pg_dump -Fc foreman > $BACKUP_DIR/foreman.dump"
+runuser - postgres -c "pg_dump -Fc foreman > $BACKUP_DIR/foreman.dump" >/dev/null 2>&1
 exit_status_check "Foreman DB"
 
-runuser - postgres -c "pg_dump -Fc candlepin > $BACKUP_DIR/candlepin.dump"
+runuser - postgres -c "pg_dump -Fc candlepin > $BACKUP_DIR/candlepin.dump" >/dev/null 2>&1
 exit_status_check "Candlepin DB"
 
 mongodump --host localhost --out $BACKUP_DIR/mongo_dump >/dev/null 2>&1 
