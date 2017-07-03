@@ -18,7 +18,7 @@ fi
 }
 
 root_check
-export BACKUP_DIR="/var/tmp/backup-$date +%Y-%m-%d)"
+export BACKUP_DIR="/var/tmp/backup-$(date +%Y-%m-%d)"
 read -p "Provide the location of the Red Hat Satellite DB tarball : " LOCATION
 
 result=$(file $LOCATION | grep gzip)

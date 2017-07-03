@@ -20,7 +20,7 @@ fi
 root_check
 echo -e "\nPreparing temporary backup directory"
 umask 0027
-export BACKUP_DIR="/var/tmp/backup-$date +%Y-%m-%d)"
+export BACKUP_DIR="/var/tmp/backup-$(date +%Y-%m-%d)"
 mkdir $BACKUP_DIR
 chgrp postgres $BACKUP_DIR
 chmod 770 $BACKUP_DIR
