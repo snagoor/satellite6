@@ -52,4 +52,7 @@ rm -rf $BACKUP_DIR
 unset BACKUP_DIR
 echo -e "\nDone"
 
-echo -e "\nBackup Complete !!! Database backup is located at '"/root/backup.tar.gz"'\n"
+DB_MD5SUM=$(md5sum /root/backup.tar.gz)
+
+echo -e "\nBackup Complete !!! Database backup is located at '"/root/backup.tar.gz"'"
+echo -e "MD5SUM of backup file /root/backup.tar.gz is : $(DB_MD5SUM)\n"
