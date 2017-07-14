@@ -24,11 +24,11 @@ export BACKUP_DIR="/var/tmp/backup-$(date +%Y-%m-%d)"
 mkdir $BACKUP_DIR
 chgrp postgres $BACKUP_DIR
 chmod 770 $BACKUP_DIR
-echo -e "\nDone"
+echo -e "Done"
 
 echo -e "\nBacking up Red Hat Satellite 6 Configuration files"
-tar -cvf $BACKUP_DIR/config_files.tar.gz /etc/candlepin /etc/elasticsearch /etc/foreman /etc/foreman-proxy /etc/gutterball /etc/hammer /root/.hammer /etc/httpd /etc/katello /etc/katello-installer /etc/pki/katello /etc/pki/katello-certs-tools /etc/pki/pulp /etc/pulp /etc/puppet /etc/qpid /etc/qpid-dispatch /etc/sysconfig/elasticsearch /etc/sysconfig/tomcat /etc/tomcat /root/ssl-build /var/lib/foreman /var/lib/candlepin /var/www/html/pub /var/lib/puppet/foreman_cache_data /var/lib/puppet/ssl >/dev/null 2>&1
-echo -e "\nDone"
+tar -cvf $BACKUP_DIR/config_files.tar.gz /etc/candlepin /etc/foreman /etc/foreman-proxy /etc/hammer /root/.hammer /etc/httpd /etc/katello /etc/katello-installer /etc/pki/katello /etc/pki/katello-certs-tools /etc/pki/pulp /etc/pulp /etc/puppet /etc/qpid /etc/qpid-dispatch /etc/sysconfig/tomcat /etc/tomcat /root/ssl-build /var/lib/foreman /var/lib/candlepin /var/www/html/pub /var/lib/puppet/foreman_cache_data /var/lib/puppet/ssl >/dev/null 2>&1
+echo -e "Done"
 
 echo -e "\nBacking up Red Hat Satellite 6 databases i.e. PostgreSQL and MongoDB"
 runuser - postgres -c "pg_dump -Fc foreman > $BACKUP_DIR/foreman.dump" >/dev/null 2>&1
@@ -39,20 +39,20 @@ exit_status_check "Candlepin DB"
 
 mongodump --host localhost --out $BACKUP_DIR/mongo_dump >/dev/null 2>&1 
 exit_status_check "MongoDB"
-echo -e "\nDone"
+echo -e "Done"
 
 echo -e "\nCompressing Backup"
 cd $BACKUP_DIR
 tar -cvzf /root/backup.tar.gz * >/dev/null 2>&1
 cd ~
-echo -e "\nDone"
+echo -e "Done"
 
 echo -e "\nCleaning up temporary directory"
 rm -rf $BACKUP_DIR
 unset BACKUP_DIR
-echo -e "\nDone"
+echo -e "Done"
 
 DB_MD5SUM=$(md5sum /root/backup.tar.gz | awk '{print $1}')
 
 echo -e "\nBackup Complete !!! Database backup is located at '"/root/backup.tar.gz"'"
-echo -e "MD5SUM of backup file /root/backup.tar.gz is : $(DB_MD5SUM)\n"
+echo -e "\nMD5SUM of backup file /root/backup.tar.gz is : $(DB_MD5SUM)\n"
