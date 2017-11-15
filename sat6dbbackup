@@ -55,4 +55,4 @@ echo -e "Done"
 DB_MD5SUM=$(md5sum /root/backup.tar.gz | awk '{print $1}')
 
 echo -e "\nBackup Complete !!! Database backup is located at '"/root/backup.tar.gz"'"
-echo -e "\nMD5SUM of backup file /root/backup.tar.gz is : $(DB_MD5SUM)\n"
+echo -e "\nMD5SUM of backup file /root/backup.tar.gz is : $DB_MD5SUM\n"
